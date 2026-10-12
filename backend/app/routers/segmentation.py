@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException, Query
 from typing import Dict, Any, Optional
 from ..services.clustering_service import run_customer_segmentation

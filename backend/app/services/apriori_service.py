@@ -1,8 +1,12 @@
+# pyrefly: ignore [missing-import]
 import time
 import logging
+
 from typing import Dict, Any, List
 import pandas as pd
+# pyrefly: ignore [missing-import]
 from mlxtend.frequent_patterns import apriori, association_rules
+# pyrefly: ignore [missing-import]
 from mlxtend.preprocessing import TransactionEncoder
 from ..db import db_manager
 from ..schemas.common import RunResult, TableResult, ChartResult, MetaResult
@@ -58,7 +62,7 @@ def run_apriori_mining(params: Dict[str, Any]) -> RunResult:
             itemset_rows.append({
                 "itemset": f"{{{items}}}",
                 "support": str(round(float(r["support"]), 3)),
-                "count": int(round(float(r["support"]) * len(mining_txns))),
+                "count": round(float(r["support"]) * len(mining_txns)),
             })
 
     # 6. Derive Association Rules

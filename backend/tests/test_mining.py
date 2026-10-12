@@ -1,6 +1,8 @@
-import pytest
-from fastapi.testclient import TestClient
-from backend.app.main import app
+# pyrefly: ignore [missing-import]
+import pytest  # type: ignore
+from fastapi.testclient import TestClient  # type: ignore
+
+from backend.app.main import app  # type: ignore
 
 client = TestClient(app)
 

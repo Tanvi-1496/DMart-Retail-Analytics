@@ -1,6 +1,7 @@
 import time
 import logging
 from typing import Dict, Any, List
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
@@ -125,8 +126,8 @@ def run_decision_tree_analysis(params: Dict[str, Any]) -> RunResult:
             "Precision": f"{prec * 100:.1f}%",
             "Recall": f"{rec * 100:.1f}%",
             "F1 score": f"{f1 * 100:.1f}%",
-            "Tree depth": clf.get_depth(),
-            "Leaves": clf.get_n_leaves(),
+            "Tree depth": int(clf.get_depth()),
+            "Leaves": int(clf.get_n_leaves()),
         },
         observations=obs,
         warnings=warnings,

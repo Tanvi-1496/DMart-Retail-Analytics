@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter
 from ..services.dashboard_service import get_dashboard_kpis
 

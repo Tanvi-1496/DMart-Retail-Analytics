@@ -15,7 +15,7 @@ const nav = [
   { to: "/prediction", label: "Prediction", icon: Target },
   { to: "/insights", label: "Insights", icon: Lightbulb },
 ];
-const labs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12];
+const labs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const names: Record<string, string> = { "/": "Dashboard", "/exploration": "Data Exploration", "/sales": "Sales Analysis", "/market-basket": "Market Basket", "/segmentation": "Customer Segmentation", "/prediction": "Prediction", "/insights": "Insights" };
 
 export default function AppShell() {

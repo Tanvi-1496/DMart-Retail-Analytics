@@ -1,5 +1,7 @@
+# pyrefly: ignore [missing-import]
 import time
 import logging
+
 from typing import Dict, Any, List
 import pandas as pd
 from ..db import db_manager
@@ -181,7 +183,7 @@ def execute_olap_operation(operation: str, params: Dict[str, Any]) -> RunResult:
     columns = list(df_res.columns) if not df_res.empty else ["Dimension", "Value"]
     rows = []
     for _, r in df_res.iterrows():
-        row_dict = {}
+        row_dict: Dict[str, Any] = {}
         for c in columns:
             val = r[c]
             if isinstance(val, (int, float)):

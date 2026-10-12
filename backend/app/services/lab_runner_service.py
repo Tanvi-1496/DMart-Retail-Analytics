@@ -63,7 +63,7 @@ def run_lab_1_warehouse_design(params: Dict[str, Any]) -> RunResult:
     cols = list(df.columns)
     rows = []
     for _, r in df.iterrows():
-        row_dict = {}
+        row_dict: Dict[str, Any] = {}
         for c in cols:
             val = r[c]
             if isinstance(val, float):

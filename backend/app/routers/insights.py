@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter
 from ..services.insights_service import generate_warehouse_insights
 

@@ -1,16 +1,18 @@
+# pyrefly: ignore [missing-import]
 import os
 import time
+
 import logging
 from typing import Dict, Any, List
-import pandas as pd
-import numpy as np
+import pandas as pd  # type: ignore
+import numpy as np  # type: ignore
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.cluster import KMeans
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-from mlxtend.frequent_patterns import apriori, association_rules
-from mlxtend.preprocessing import TransactionEncoder
+from mlxtend.frequent_patterns import apriori, association_rules  # type: ignore
+from mlxtend.preprocessing import TransactionEncoder  # type: ignore
 from ..config import settings
 from ..schemas.common import RunResult, TableResult, ChartResult, MetaResult
 
@@ -33,12 +35,13 @@ def run_mini_project_step(params: Dict[str, Any]) -> RunResult:
     if step == "Preprocess":
         # Data cleaning, summary statistics, normalization & discretization
         overview_rows = [
-            {"attribute": "Category", "type": "Nominal", "distinct_values": df["Category"].nunique(), "missing": df["Category"].isnull().sum()},
-            {"attribute": "Store_Region", "type": "Nominal", "distinct_values": df["Store_Region"].nunique(), "missing": df["Store_Region"].isnull().sum()},
-            {"attribute": "Basket_Value", "type": "Numeric", "mean": round(df["Basket_Value"].mean(), 2), "std": round(df["Basket_Value"].std(), 2)},
-            {"attribute": "Visits_Per_Month", "type": "Numeric", "mean": round(df["Visits_Per_Month"].mean(), 2), "std": round(df["Visits_Per_Month"].std(), 2)},
+            {"attribute": "Category", "type": "Nominal", "distinct_values": int(df["Category"].nunique()), "missing": int(df["Category"].isnull().sum())},
+            {"attribute": "Store_Region", "type": "Nominal", "distinct_values": int(df["Store_Region"].nunique()), "missing": int(df["Store_Region"].isnull().sum())},
+            {"attribute": "Basket_Value", "type": "Numeric", "mean": round(float(df["Basket_Value"].mean()), 2), "std": round(float(df["Basket_Value"].std()), 2)},
+            {"attribute": "Visits_Per_Month", "type": "Numeric", "mean": round(float(df["Visits_Per_Month"].mean()), 2), "std": round(float(df["Visits_Per_Month"].std()), 2)},
             {"attribute": "High_Profit", "type": "Binary Target", "class_0": int((df["High_Profit"] == 0).sum()), "class_1": int((df["High_Profit"] == 1).sum())},
         ]
+
         chart_series = [{"name": str(cat), "value": int(cnt)} for cat, cnt in df["Category"].value_counts().items()]
 
         obs = [

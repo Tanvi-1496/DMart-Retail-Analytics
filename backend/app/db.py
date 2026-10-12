@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 import os
 import sqlite3
 import logging
@@ -5,7 +6,24 @@ from typing import Optional, List, Dict, Any, Tuple
 import pandas as pd
 from .config import settings
 
+import ssl
+from urllib.parse import urlparse
+import importlib
+
+psycopg: Any = None
+try:
+    psycopg = importlib.import_module("psycopg")
+except Exception:
+    psycopg = None
+
+pg8000: Any = None
+try:
+    pg8000 = importlib.import_module("pg8000.dbapi")
+except Exception:
+    pg8000 = None
+
 logger = logging.getLogger("dmart.db")
+
 
 class DatabaseManager:
     def __init__(self):
@@ -15,20 +33,48 @@ class DatabaseManager:
         self._is_connected = False
         self._connection_error = None
 
+    def _get_pg_connection(self):
+        """Returns a PostgreSQL connection using psycopg if available, or pg8000 pure-Python driver."""
+        if not settings.DATABASE_URL:
+            raise ValueError("DATABASE_URL is not set.")
+        if psycopg is not None:
+            try:
+                return psycopg.connect(settings.DATABASE_URL, connect_timeout=5)
+            except Exception:
+                pass
+        if pg8000 is not None:
+            parsed = urlparse(settings.DATABASE_URL)
+            ssl_ctx = ssl.create_default_context()
+            ssl_ctx.check_hostname = False
+            ssl_ctx.verify_mode = ssl.CERT_NONE
+            return pg8000.connect(
+                user=parsed.username or "postgres",
+                password=parsed.password or "",
+                host=parsed.hostname or "127.0.0.1",
+                port=parsed.port or 5432,
+                database=parsed.path.lstrip("/") or "postgres",
+                ssl_context=ssl_ctx,
+                timeout=60,
+            )
+        raise RuntimeError("No working PostgreSQL driver found. Please install pg8000 or psycopg.")
+
     def initialize(self):
         """Initializes database connection to Supabase or sets up local warehouse fallback."""
         if settings.DATABASE_URL:
             try:
-                import psycopg
-                # Test PostgreSQL connection
-                with psycopg.connect(settings.DATABASE_URL, connect_timeout=5) as conn:
-                    with conn.cursor() as cur:
-                        cur.execute("SELECT 1;")
+                conn = self._get_pg_connection()
+                try:
+                    cur = conn.cursor()
+                    cur.execute("SELECT 1;")
+                    cur.close()
+                finally:
+                    conn.close()
                 self.db_type = "supabase_postgresql"
                 self._is_connected = True
                 self._connection_error = None
                 logger.info("Successfully connected to Supabase PostgreSQL warehouse.")
                 return
+
             except Exception as e:
                 self._connection_error = str(e)
                 logger.warning(f"Failed to connect to Supabase PostgreSQL: {e}. Falling back to local warehouse.")
@@ -155,30 +201,41 @@ class DatabaseManager:
             "connection_error": self._connection_error,
         }
 
-    def query_df(self, query: str, params: Optional[Tuple] = None) -> pd.DataFrame:
+    def query_df(self, query: str, params: Optional[Any] = None) -> pd.DataFrame:
         """Executes a SELECT query and returns a pandas DataFrame."""
+        param_list = list(params) if params is not None else None
         if self.db_type == "supabase_postgresql":
-            import psycopg
-            with psycopg.connect(settings.DATABASE_URL) as conn:
-                return pd.read_sql_query(query, conn, params=params)
+            conn = self._get_pg_connection()
+            try:
+                pg_query = query.replace("?", "%s")
+                return pd.read_sql_query(pg_query, conn, params=param_list)
+            finally:
+                conn.close()
         else:
             conn = sqlite3.connect(self._sqlite_path)
             try:
                 # Replace Postgres specific ILIKE with LIKE if needed
                 compat_query = query.replace("ILIKE", "LIKE")
-                return pd.read_sql_query(compat_query, conn, params=params or ())
+                return pd.read_sql_query(compat_query, conn, params=param_list)
             finally:
                 conn.close()
 
     def execute(self, query: str, params: Optional[Tuple] = None) -> int:
         """Executes an INSERT/UPDATE/DELETE statement."""
         if self.db_type == "supabase_postgresql":
-            import psycopg
-            with psycopg.connect(settings.DATABASE_URL) as conn:
-                with conn.cursor() as cur:
-                    cur.execute(query, params)
-                    conn.commit()
-                    return cur.rowcount
+            conn = self._get_pg_connection()
+            try:
+                cur = conn.cursor()
+                pg_query = query.replace("INSERT OR IGNORE INTO", "INSERT INTO").replace("?", "%s")
+                if "INSERT INTO" in pg_query and "ON CONFLICT" not in pg_query:
+                    pg_query = pg_query.rstrip("; \t\n") + " ON CONFLICT DO NOTHING;"
+                cur.execute(pg_query, list(params) if params else ())
+                conn.commit()
+                rowcount = cur.rowcount
+                cur.close()
+                return rowcount
+            finally:
+                conn.close()
         else:
             conn = sqlite3.connect(self._sqlite_path)
             try:
@@ -190,17 +247,44 @@ class DatabaseManager:
                 conn.close()
 
     def execute_batch(self, query: str, params_list: List[Tuple]) -> int:
-
         """Executes a batch of parameter tuples within a single transaction for ultra-high throughput."""
         if not params_list:
             return 0
         if self.db_type == "supabase_postgresql":
-            import psycopg
-            with psycopg.connect(settings.DATABASE_URL) as conn:
-                with conn.cursor() as cur:
-                    cur.executemany(query, params_list)
+            conn = self._get_pg_connection()
+            try:
+                cur = conn.cursor()
+                clean_q = query.strip()
+                if "VALUES" in clean_q.upper() and ("?" in clean_q or "%s" in clean_q):
+                    v_idx = clean_q.upper().index("VALUES")
+                    prefix = clean_q[:v_idx + 6].strip().replace("INSERT OR IGNORE INTO", "INSERT INTO")
+                    after_values = clean_q[v_idx + 6:].strip().rstrip("; \t\n")
+                    row_template = after_values.replace("?", "%s")
+                    
+                    chunk_size = 250
+                    for i in range(0, len(params_list), chunk_size):
+                        chunk = params_list[i:i+chunk_size]
+                        flat_params = []
+                        val_clauses = []
+                        for row in chunk:
+                            val_clauses.append(row_template)
+                            flat_params.extend(row)
+                        full_sql = f"{prefix} {','.join(val_clauses)}"
+                        if "ON CONFLICT" not in full_sql:
+                            full_sql += " ON CONFLICT DO NOTHING;"
+                        cur.execute(full_sql, flat_params)
                     conn.commit()
-                    return len(params_list)
+                else:
+                    pg_query = clean_q.replace("INSERT OR IGNORE INTO", "INSERT INTO").replace("?", "%s")
+                    if "INSERT INTO" in pg_query and "ON CONFLICT" not in pg_query:
+                        pg_query = pg_query.rstrip("; \t\n") + " ON CONFLICT DO NOTHING;"
+                    cur.executemany(pg_query, params_list)
+                    conn.commit()
+                cur.close()
+                return len(params_list)
+            finally:
+                conn.close()
+
         else:
             conn = sqlite3.connect(self._sqlite_path)
             try:

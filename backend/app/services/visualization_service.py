@@ -1,8 +1,10 @@
+# pyrefly: ignore [missing-import]
 import time
 import logging
 from typing import Dict, Any, List
-import pandas as pd
-import numpy as np
+import pandas as pd  # type: ignore
+import numpy as np  # type: ignore
+
 from ..db import db_manager
 from ..schemas.common import RunResult, TableResult, ChartResult, MetaResult
 
@@ -33,8 +35,8 @@ def run_visualization_service(chart_type: str, params: Dict[str, Any]) -> RunRes
         # Sample points for scatter
         q = "SELECT s.unit_price AS x, s.total_amount AS y, s.quantity AS cluster FROM fact_sales s LIMIT 120;"
         df = db_manager.query_df(q)
-        series = [{"name": f"P{i+1}", "x": round(float(r["x"]), 1), "y": round(float(r["y"]), 1), "cluster": int(r["cluster"]) % 4} for i, r in df.iterrows()]
-        table_rows = [{"point": f"P{i+1}", "x": round(float(r["x"]), 1), "y": round(float(r["y"]), 1)} for i, r in df.head(10).iterrows()]
+        series = [{"name": f"P{idx + 1}", "x": round(float(r["x"]), 1), "y": round(float(r["y"]), 1), "cluster": int(r["cluster"]) % 4} for idx, (_, r) in enumerate(df.iterrows())]
+        table_rows = [{"point": f"P{idx + 1}", "x": round(float(r["x"]), 1), "y": round(float(r["y"]), 1)} for idx, (_, r) in enumerate(df.head(10).iterrows())]
         table_cols = ["point", "x", "y"]
 
     elif c_type in ["histogram"]:

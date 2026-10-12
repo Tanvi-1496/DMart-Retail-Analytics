@@ -1,8 +1,10 @@
+# pyrefly: ignore [missing-import]
 import time
 import logging
 from typing import Dict, Any, List
-import numpy as np
-import pandas as pd
+import numpy as np  # type: ignore
+import pandas as pd  # type: ignore
+
 from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix

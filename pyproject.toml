@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dmart-retail-analytics"
+version = "1.0.0"
+description = "DMart Retail Analytics using Data Warehousing and Data Mining"
+requires-python = ">=3.10"
+
+[tool.pyrefly]
+search-path = [
+    ".",
+    "backend",
+    "backend/app",
+    "C:/Users/hp/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages"
+]
+
+[tool.pyrefly.errors]
+missing-import = false
+missing-stub = false
+
+[tool.pyright]
+include = ["backend"]
+extraPaths = [
+    "C:/Users/hp/AppData/Local/Python/pythoncore-3.14-64/Lib/site-packages",
+    "backend",
+    "backend/app"
+]
+pythonPath = "C:/Users/hp/AppData/Local/Python/pythoncore-3.14-64/python.exe"
+reportMissingImports = "none"

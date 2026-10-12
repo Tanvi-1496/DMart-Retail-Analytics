@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Query
-from typing import Optional
+# pyrefly: ignore [missing-import]
+from fastapi import APIRouter
+from typing import Optional, List, Any
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 import pandas as pd
 from ..db import db_manager
@@ -102,7 +104,7 @@ def get_exploration_summary():
 @router.post("/api/exploration/query")
 def query_exploration(body: ExplorationQueryRequest):
     where = ["1=1"]
-    params = []
+    params: List[Any] = []
     if body.category and body.category != "All categories":
         where.append("c.category_name = ?")
         params.append(body.category)

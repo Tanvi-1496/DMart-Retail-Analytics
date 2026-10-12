@@ -1,9 +1,12 @@
+# pyrefly: ignore [missing-import]
 import os
 import re
+
 import datetime
 import logging
 from typing import Dict, Any, Optional, Tuple
 import pandas as pd
+# pyrefly: ignore [missing-import]
 import numpy as np
 from ..db import db_manager
 from ..config import settings
@@ -114,7 +117,7 @@ def load_data_into_warehouse(df: pd.DataFrame, batch_size: int = 5000) -> Dict[s
         m_name = datetime.date(int(r["Year"]), int(r["Month"]), 1).strftime("%B")
         date_tuples.append((
             int(r["DateKey"]), str(r["ParsedDate"].date()), int(r["Day"]), int(r["Month"]),
-            m_name, int(r["Quarter"]), int(r["Year"]), str(r["DayOfWeek"]), int(r["IsWeekend"])
+            m_name, int(r["Quarter"]), int(r["Year"]), str(r["DayOfWeek"]), bool(r["IsWeekend"])
         ))
     db_manager.execute_batch(
         """INSERT OR IGNORE INTO dim_date (date_key, full_date, day, month, month_name, quarter, year, day_of_week, is_weekend)
@@ -141,6 +144,17 @@ def load_data_into_warehouse(df: pd.DataFrame, batch_size: int = 5000) -> Dict[s
 
     # 4. Ensure dim_store has rows
     store_df = db_manager.query_df("SELECT store_key FROM dim_store;")
+    if store_df.empty:
+        stores = [
+            ("DMart Thane West", "Mumbai", "West"),
+            ("DMart Kandivali", "Mumbai", "West"),
+            ("DMart Kothrud", "Pune", "West"),
+            ("DMart SG Highway", "Ahmedabad", "West"),
+            ("DMart Whitefield", "Bengaluru", "South"),
+        ]
+        for sname, city, reg in stores:
+            db_manager.execute("INSERT INTO dim_store (store_name, city, region, is_simulated) VALUES (?, ?, ?, TRUE);", (sname, city, reg))
+        store_df = db_manager.query_df("SELECT store_key FROM dim_store;")
     store_keys = store_df["store_key"].tolist() if not store_df.empty else [1]
 
     # 5. Load fact_sales in batches
@@ -160,7 +174,7 @@ def load_data_into_warehouse(df: pd.DataFrame, batch_size: int = 5000) -> Dict[s
             ))
         db_manager.execute_batch(
             """INSERT INTO fact_sales (date_key, customer_key, category_key, store_key, sale_time, sale_hour, unit_price, quantity, total_amount, is_simulated)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0);""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE);""",
             batch_tuples
         )
         loaded_count += len(batch)
@@ -180,7 +194,7 @@ def load_data_into_warehouse(df: pd.DataFrame, batch_size: int = 5000) -> Dict[s
                     inv_tuples.append((int(d_key), int(cat_id), int(st_id), open_stock, closed_stock, received))
         db_manager.execute_batch(
             """INSERT INTO fact_inventory (date_key, category_key, store_key, opening_stock, closing_stock, stock_received, is_simulated)
-               VALUES (?, ?, ?, ?, ?, ?, 1);""",
+               VALUES (?, ?, ?, ?, ?, ?, TRUE);""",
             inv_tuples
         )
 

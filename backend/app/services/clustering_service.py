@@ -1,13 +1,16 @@
+# pyrefly: ignore [missing-import]
 import os
 import time
+
 import logging
 from typing import Dict, Any, List, Optional
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import silhouette_score
-from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.cluster.hierarchy import linkage, dendrogram  # type: ignore
 from ..db import db_manager
 from ..config import settings
 from ..schemas.common import RunResult, TableResult, ChartResult, MetaResult

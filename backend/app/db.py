@@ -203,12 +203,16 @@ class DatabaseManager:
 
     def query_df(self, query: str, params: Optional[Any] = None) -> pd.DataFrame:
         """Executes a SELECT query and returns a pandas DataFrame."""
+        import re
+        import warnings
         param_list = list(params) if params is not None else None
         if self.db_type == "supabase_postgresql":
             conn = self._get_pg_connection()
             try:
                 pg_query = query.replace("?", "%s")
-                return pd.read_sql_query(pg_query, conn, params=param_list)
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=UserWarning, module="pandas")
+                    df = pd.read_sql_query(pg_query, conn, params=param_list)
             finally:
                 conn.close()
         else:
@@ -216,9 +220,20 @@ class DatabaseManager:
             try:
                 # Replace Postgres specific ILIKE with LIKE if needed
                 compat_query = query.replace("ILIKE", "LIKE")
-                return pd.read_sql_query(compat_query, conn, params=param_list)
+                df = pd.read_sql_query(compat_query, conn, params=param_list)
             finally:
                 conn.close()
+
+        # In PostgreSQL queries, restore original column alias casing
+        # (e.g. AS UnitPrice -> 'UnitPrice' instead of postgres default lowercase 'unitprice')
+        # to ensure seamless cross-warehouse compatibility across all analytical services.
+        if not df.empty:
+            alias_matches = re.findall(r'(?i)\bAS\s+([A-Za-z0-9_]+)\b', query)
+            if alias_matches:
+                alias_map = {a.lower(): a for a in alias_matches}
+                df.columns = [alias_map.get(str(c).lower(), c) for c in df.columns]
+
+        return df
 
     def execute(self, query: str, params: Optional[Tuple] = None) -> int:
         """Executes an INSERT/UPDATE/DELETE statement."""

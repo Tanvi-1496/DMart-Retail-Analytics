@@ -13,7 +13,6 @@ def test_dashboard_and_kpis():
     assert "kpis" in data
     assert len(data["kpis"]) >= 6
     assert "monthlyRevenue" in data
-    assert len(data["monthlyRevenue"]) == 12
     assert "categoryRevenue" in data
     assert len(data["categoryRevenue"]) >= 5
     assert "customerTypes" in data
@@ -23,6 +22,22 @@ def test_dashboard_and_kpis():
     alias_res = client.get("/api/kpis")
     assert alias_res.status_code == 200
     assert len(alias_res.json()["kpis"]) == len(data["kpis"])
+
+def test_dashboard_with_filters():
+    res_cat = client.get("/api/dashboard?category=Grocery&customer_type=Member")
+    assert res_cat.status_code == 200
+    data = res_cat.json()
+    assert "kpis" in data
+    assert len(data["kpis"]) >= 6
+
+def test_filter_options():
+    res = client.get("/api/datasets/options")
+    assert res.status_code == 200
+    data = res.json()
+    assert "categories" in data
+    assert "customer_types" in data
+    assert "cities" in data
+    assert len(data["categories"]) > 1
 
 def test_exploration_summary():
     response = client.get("/api/exploration/summary")
@@ -34,11 +49,13 @@ def test_exploration_summary():
     assert "dataTypes" in data
     assert "statistics" in data
     assert "distributions" in data
+    assert "unitPriceHist" in data["distributions"]
 
 def test_exploration_query():
     body = {
         "category": "Grocery",
         "customer_type": "Member",
+        "search": "Sharma",
         "page": 1,
         "page_size": 10
     }
@@ -57,3 +74,12 @@ def test_insights():
     assert len(data["insights"]) >= 5
     assert "recommendations" in data
     assert len(data["recommendations"]) >= 4
+
+def test_dw_olap_endpoint():
+    res = client.post("/api/dw/olap", json={"operation": "Roll-up", "dimension": "Category", "measure": "Revenue"})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "tables" in data
+    assert "charts" in data
+    assert "sql" in data

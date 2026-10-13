@@ -18,7 +18,7 @@ LAB_CATALOG = [
     {"number": 7, "title": "K-Means Clustering", "dataset": "DMart", "technologies": "KMeans, StandardScaler, Elbow Method, Silhouette Score"},
     {"number": 8, "title": "Agglomerative Clustering", "dataset": "Mall Customers (200 rows)", "technologies": "SciPy AgglomerativeClustering, Dendrogram, Linkage"},
     {"number": 9, "title": "Apriori Association Rules", "dataset": "DMart (Basket Proxy)", "technologies": "mlxtend Apriori, Association Rules, Support/Confidence/Lift"},
-    {"number": 10, "title": "WEKA-Style Mini Project", "dataset": "Lab 10 Cleaned (1,000 rows)", "technologies": "Pipeline: Preprocess -> Classify -> Cluster -> Associate"},
+    {"number": 10, "title": "Integrated Data Mining Pipeline", "dataset": "Lab 10 Cleaned (1,000 rows)", "technologies": "Data Preprocessing, Classification, Clustering & Association Rule Mining"},
     {"number": 11, "title": "Beijing AQI Prediction", "dataset": "Beijing AQI (1,500 rows)", "technologies": "RandomForestRegressor, Sub-index Breakpoints, Chronological Split"},
     {"number": 12, "title": "Customer Segmentation", "dataset": "Mall Customers (200 rows)", "technologies": "K-Means, Demographic Profiling, Empirical Strategy Recommendation"},
 ]

@@ -1,144 +1,125 @@
-import { categoryRevenue, clusterPoints, customerTypes, insights, kpis, labResult, miningResult, monthlyRevenue, olapResult, previewRows, topCustomers } from "../mocks/data";
+import type { DashboardData, ExplorationData, FilterOptions, RunResult, SegmentationData } from "../types";
 
 const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://127.0.0.1:8000";
 
-const delay = <T,>(data: T, ms = 350) => new Promise<T>((resolve) => setTimeout(() => resolve(data), ms));
+async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-async function safeFetch<T>(url: string, options?: RequestInit, fallback?: () => Promise<T> | T): Promise<T> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
     const res = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timeoutId);
-    if (res.ok) {
-      return (await res.json()) as T;
+
+    if (!res.ok) {
+      let errorMsg = `Server error (${res.status} ${res.statusText})`;
+      try {
+        const errJson = await res.json();
+        if (errJson?.detail) errorMsg = String(errJson.detail);
+      } catch {
+        // use default errorMsg
+      }
+      throw new Error(errorMsg);
     }
-  } catch (err) {
-    // Graceful fallback to mock data when backend is not running or network request times out
-  }
-  if (fallback) {
-    return typeof fallback === "function" ? await fallback() : fallback;
-  }
-  throw new Error(`Failed to fetch from ${url} and no fallback provided.`);
-}
 
-export async function getKpis() {
-  return safeFetch(
-    `${API_BASE}/api/dashboard`,
-    undefined,
-    () => delay({ kpis, monthlyRevenue, categoryRevenue, customerTypes, topCustomers })
-  );
-}
-
-export async function getExploration() {
-  return safeFetch(
-    `${API_BASE}/api/exploration/summary`,
-    undefined,
-    () => delay({
-      overview: { rows: "1,000,000", columns: 9, missing: 0, duplicates: 128 },
-      previewRows,
-      dataTypes: [
-        { column: "TransactionID", type: "string", non_null: "1,000,000" },
-        { column: "Date", type: "date", non_null: "1,000,000" },
-        { column: "Category", type: "category", non_null: "1,000,000" },
-        { column: "UnitPrice", type: "float", non_null: "1,000,000" },
-        { column: "Quantity", type: "integer", non_null: "1,000,000" },
-        { column: "Total", type: "float", non_null: "1,000,000" },
-      ],
-      statistics: [
-        { metric: "UnitPrice", mean: 342.8, std: 418.2, min: 10, median: 199, max: 4999 },
-        { metric: "Quantity", mean: 3.26, std: 1.71, min: 1, median: 3, max: 12 },
-        { metric: "Total", mean: 487.2, std: 638.6, min: 10, median: 326, max: 15990 },
-      ],
-      distributions: { monthlyRevenue, categoryRevenue },
-    })
-  );
-}
-
-export async function getSegmentation() {
-  return safeFetch(
-    `${API_BASE}/api/mining/segmentation`,
-    undefined,
-    () => delay({
-      elbow: [2, 3, 4, 5, 6, 7, 8].map((k, i) => ({ name: String(k), value: [920, 610, 395, 318, 274, 248, 231][i] })),
-      points: clusterPoints,
-      profiles: [
-        { name: "High Value", customers: 18320, spend: "₹8,420", transactions: 16.8, color: "#0E8A4F" },
-        { name: "Loyal", customers: 37940, spend: "₹4,280", transactions: 11.2, color: "#2563EB" },
-        { name: "Occasional", customers: 44610, spend: "₹2,140", transactions: 5.6, color: "#F59E0B" },
-        { name: "At Risk", border: "#E45858", customers: 23990, spend: "₹1,120", transactions: 2.7, color: "#E45858" },
-      ],
-    })
-  );
-}
-
-export async function getPrediction(kind: string) {
-  return safeFetch(
-    `${API_BASE}/api/mining/prediction?kind=${encodeURIComponent(kind)}`,
-    undefined,
-    () => {
-      const common = {
-        series: Array.from({ length: 32 }, (_, i) => ({ x: 100 + i * 35, y: 112 + i * 34 + ((i % 5) - 2) * 18, name: String(i) })),
-        metrics: kind === "forecast" ? { MAE: "₹0.18 Cr", RMSE: "₹0.24 Cr", MAPE: "4.8%" } : { MAE: 12.4, MSE: 231.8, RMSE: 15.23, R2: 0.986 },
-        warning: kind === "regression" ? "Total = UnitPrice x Quantity, so near-perfect R2 is expected (data leakage)." : "",
-      };
-      return delay(common);
+    return (await res.json()) as T;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err?.name === "AbortError") {
+      throw new Error(`Request timed out while contacting ${url}. The backend analysis took longer than 12 seconds.`);
     }
-  );
+    if (err instanceof TypeError && err.message.toLowerCase().includes("fetch")) {
+      throw new Error(`Cannot connect to FastAPI backend at ${API_BASE}. Ensure the backend is running via 'run_backend.bat' or 'py -m uvicorn backend.app.main:app'.`);
+    }
+    throw err;
+  }
+}
+
+export async function getFilterOptions(): Promise<FilterOptions> {
+  return apiFetch<FilterOptions>(`${API_BASE}/api/datasets/options`);
+}
+
+export async function getKpis(filters?: Record<string, string | number | undefined>): Promise<DashboardData> {
+  const params = new URLSearchParams();
+  if (filters) {
+    for (const [key, val] of Object.entries(filters)) {
+      if (val !== undefined && val !== null && val !== "" && val !== "All" && val !== "All categories" && val !== "All customer types" && val !== "All months") {
+        params.append(key, String(val));
+      }
+    }
+  }
+  const qs = params.toString();
+  return apiFetch<DashboardData>(`${API_BASE}/api/dashboard${qs ? `?${qs}` : ""}`);
+}
+
+export async function getExploration(): Promise<ExplorationData> {
+  return apiFetch<ExplorationData>(`${API_BASE}/api/exploration/summary`);
+}
+
+export async function queryExploration(body: {
+  category?: string;
+  customer_type?: string;
+  min_amount?: number;
+  max_amount?: number;
+  search?: string;
+  page?: number;
+  page_size?: number;
+}) {
+  return apiFetch<{
+    page: number;
+    page_size: number;
+    total_records: number;
+    total_pages: number;
+    records: Record<string, string | number>[];
+  }>(`${API_BASE}/api/exploration/query`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function getSegmentation(k = 4, auto = false): Promise<SegmentationData> {
+  return apiFetch<SegmentationData>(`${API_BASE}/api/segmentation?k=${k}&auto=${auto}`);
+}
+
+export async function getPrediction(
+  kind: string,
+  options?: { regression_type?: string; classifier?: string; category?: string }
+): Promise<any> {
+  const params = new URLSearchParams({ kind });
+  if (options?.regression_type) params.append("regression_type", options.regression_type);
+  if (options?.classifier) params.append("classifier", options.classifier);
+  if (options?.category && options.category !== "All categories") params.append("category", options.category);
+
+  return apiFetch<any>(`${API_BASE}/api/mining/prediction?${params.toString()}`);
 }
 
 export async function getInsights() {
-  return safeFetch(
-    `${API_BASE}/api/insights`,
-    undefined,
-    () => delay({
-      insights,
-      recommendations: [
-        "Create premium conversion offers for high-value Members.",
-        "Co-locate Grocery and Beverages in promotional campaigns.",
-        "Increase inventory cover for the December demand peak.",
-        "Test city-specific bundles in Mumbai and Pune."
-      ]
-    })
-  );
+  return apiFetch<{
+    insights: { title: string; sentence: string; metric: string; tone: "positive" | "attention" | "neutral" }[];
+    recommendations: string[];
+  }>(`${API_BASE}/api/insights`);
 }
 
-export async function runLab(n: number, params: Record<string, unknown>) {
-  return safeFetch(
-    `${API_BASE}/api/labs/${n}/run`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ params }),
-    },
-    () => delay(labResult(n), 450)
-  );
+export async function runLab(n: number, params: Record<string, unknown>): Promise<RunResult> {
+  return apiFetch<RunResult>(`${API_BASE}/api/labs/${n}/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ params }),
+  });
 }
 
-export async function runOlap(op: string, params: Record<string, unknown>) {
-  return safeFetch(
-    `${API_BASE}/api/dw/olap`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ operation: op, ...params }),
-    },
-    () => delay(olapResult(op), 450)
-  );
+export async function runOlap(op: string, params: Record<string, unknown>): Promise<RunResult> {
+  return apiFetch<RunResult>(`${API_BASE}/api/olap/${encodeURIComponent(op)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
 }
 
-export async function runMining(algo: string, params: Record<string, unknown>) {
-  const endpoint = algo.toLowerCase().includes("apriori")
-    ? `${API_BASE}/api/mining/apriori`
-    : `${API_BASE}/api/mining/segmentation`;
-
-  return safeFetch(
-    endpoint,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    },
-    () => delay(miningResult(algo), 450)
-  );
+export async function runMining(algo: string, params: Record<string, unknown>): Promise<RunResult> {
+  return apiFetch<RunResult>(`${API_BASE}/api/market-basket/apriori`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
 }

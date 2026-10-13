@@ -10,11 +10,23 @@ from ..schemas.common import RunResult
 router = APIRouter(tags=["OLAP & Data Warehouse"])
 
 class OlapParamRequest(BaseModel):
+    operation: Optional[str] = "Roll-up"
     category: Optional[str] = "All categories"
     customerType: Optional[str] = "All customer types"
     dimension: Optional[str] = "Category"
     measure: Optional[str] = "Revenue"
     city: Optional[str] = "All cities"
+    storeCity: Optional[str] = "All cities"
+
+@router.post("/api/dw/olap", response_model=RunResult)
+@router.post("/api/olap", response_model=RunResult)
+def run_olap_post(payload: Optional[Dict[str, Any]] = None):
+    data = payload or {}
+    op = data.get("operation", "Roll-up")
+    try:
+        return execute_olap_operation(op, data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/api/olap/{operation}", response_model=RunResult)
 def run_olap_operation(operation: str, params: Optional[Dict[str, Any]] = None):

@@ -88,12 +88,22 @@ def run_naive_bayes_analysis(params: Dict[str, Any]) -> RunResult:
 
     elapsed_ms = int((time.time() - start_time) * 1000)
 
+    eval_metrics_series = [
+        {"name": "Accuracy", "value": round(float(acc) * 100, 1)},
+        {"name": "Precision", "value": round(float(prec) * 100, 1)},
+        {"name": "Recall", "value": round(float(rec) * 100, 1)},
+        {"name": "F1-Score", "value": round(float(f1) * 100, 1)},
+    ]
+
     return RunResult(
         lab=6,
         status="success",
         params=params,
         tables=[TableResult(name="Confusion Matrix", columns=cm_cols, rows=cm_rows)],
-        charts=[ChartResult(type="bar", title="Target Class Priors (%)", series=class_priors)],
+        charts=[
+            ChartResult(type="bar", title="Target Class Priors (%)", series=class_priors),
+            ChartResult(type="bar", title="Evaluation Performance Metrics (%)", series=eval_metrics_series),
+        ],
         metrics={
             "Accuracy": f"{acc * 100:.1f}%",
             "Precision": f"{prec * 100:.1f}%",

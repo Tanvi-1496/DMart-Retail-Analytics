@@ -204,12 +204,17 @@ def run_agglomerative_mall(params: Dict[str, Any]) -> RunResult:
 
     elapsed_ms = int((time.time() - start_time) * 1000)
 
+    cluster_size_series = [{"name": r["cluster"], "value": int(r["customers"])} for r in summary_rows]
+
     return RunResult(
         lab=8,
         status="success",
         params=params,
         tables=[TableResult(name="Agglomerative Cluster Summary", columns=["cluster", "profile", "customers", "avg_annual_income", "avg_spending_score", "recommended_strategy"], rows=summary_rows)],
-        charts=[ChartResult(type="scatter", title="Annual Income (k$) vs Spending Score", series=scatter_series)],
+        charts=[
+            ChartResult(type="scatter", title="Annual Income (k$) vs Spending Score", series=scatter_series),
+            ChartResult(type="bar", title="Cluster Size Breakdown", series=cluster_size_series),
+        ],
         metrics={
             "Dataset": "Mall Customers (200 rows)",
             "Clusters": clusters_k,

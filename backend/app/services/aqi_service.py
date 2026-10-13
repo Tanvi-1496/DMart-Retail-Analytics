@@ -49,8 +49,13 @@ def aqi_category(aqi_val: float) -> str:
 def run_beijing_aqi_prediction(params: Dict[str, Any]) -> RunResult:
     """Lab 11: Beijing Air Quality Index (AQI) prediction using Random Forest regression."""
     start_time = time.time()
-    n_estimators = int(params.get("trees", 100))
-    n_estimators = min(max(n_estimators, 20), 200)
+    n_estimators = int(params.get("n_estimators", params.get("trees", 50)))
+    n_estimators = min(max(n_estimators, 10), 200)
+    max_depth_val = params.get("max_depth")
+    max_depth = int(max_depth_val) if max_depth_val is not None else 8
+    max_depth = min(max(max_depth, 2), 20)
+    test_size = float(params.get("test_size", params.get("test", 0.2)))
+    test_size = min(max(test_size, 0.1), 0.5)
     exclude_pm = bool(params.get("exclude_pm", False))
 
     aqi_csv = os.path.join(str(settings.resolved_data_dir), "beijing_aqi_sample.csv")
@@ -78,13 +83,13 @@ def run_beijing_aqi_prediction(params: Dict[str, Any]) -> RunResult:
     X = df[feature_cols].values
     y = df["AQI"].values
 
-    # Chronological 80/20 train/test split WITHOUT shuffling (strictly time-ordered)
-    split_idx = int(len(df) * 0.8)
+    # Chronological train/test split WITHOUT shuffling (strictly time-ordered)
+    split_idx = int(len(df) * (1.0 - test_size))
     X_train, X_test = X[:split_idx], X[split_idx:]
     y_train, y_test = y[:split_idx], y[split_idx:]
 
     # Train Random Forest Regressor
-    rf = RandomForestRegressor(n_estimators=n_estimators, random_state=42, n_jobs=-1)
+    rf = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=42, n_jobs=-1)
     rf.fit(X_train, y_train)
 
     # Predictions & metrics
@@ -120,8 +125,8 @@ def run_beijing_aqi_prediction(params: Dict[str, Any]) -> RunResult:
     cat_chart_series = [{"name": k, "value": int(v)} for k, v in cat_counts.items()]
 
     obs = [
-        f"Trained Chronological Random Forest ({n_estimators} trees) on Beijing Air Quality dataset ({len(df):,} records).",
-        f"Evaluation R² score: {r2:.4f}, demonstrating robust generalization on unseen future time horizons.",
+        f"Trained Chronological Random Forest ({n_estimators} trees, max_depth={max_depth}) on Beijing Air Quality dataset ({len(df):,} records).",
+        f"Evaluation R² score: {r2:.4f}, demonstrating robust generalization on unseen future time horizons ({len(X_test)} test days).",
         f"Mean Absolute Error (MAE): {mae:.1f} AQI points, with RMSE: {rmse:.1f} points.",
         f"Leading pollutant predictor: {feat_rows[0]['pollutant_feature']} ({feat_rows[0]['importance_pct']} relative importance).",
     ]
@@ -139,6 +144,7 @@ def run_beijing_aqi_prediction(params: Dict[str, Any]) -> RunResult:
         tables=[TableResult(name="Pollutant Feature Importance", columns=["pollutant_feature", "importance_pct", "correlation_trend"], rows=feat_rows)],
         charts=[
             ChartResult(type="scatter", title="Actual vs Predicted Air Quality Index (AQI)", series=scatter_series),
+            ChartResult(type="bar", title="Pollutant Feature Importance (%)", series=[{"name": r["pollutant_feature"], "value": float(r["importance_pct"].replace("%", ""))} for r in feat_rows]),
             ChartResult(type="bar", title="AQI Category Distribution", series=cat_chart_series),
         ],
         metrics={
@@ -148,6 +154,7 @@ def run_beijing_aqi_prediction(params: Dict[str, Any]) -> RunResult:
             "Train samples": len(X_train),
             "Test samples": len(X_test),
             "Trees": n_estimators,
+            "Max Depth": max_depth,
         },
         observations=obs,
         warnings=warnings,

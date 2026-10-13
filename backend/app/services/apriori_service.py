@@ -67,13 +67,12 @@ def run_apriori_mining(params: Dict[str, Any]) -> RunResult:
 
     # 6. Derive Association Rules
     rule_rows = []
-    top_rules_df = None
+    network_edges = []
     if not frequent_itemsets.empty and len(frequent_itemsets) > 1:
         try:
             rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=min_confidence)
             if not rules.empty:
                 rules = rules.sort_values(by="lift", ascending=False)
-                top_rules_df = rules
                 for _, r in rules.head(12).iterrows():
                     ant = ", ".join(list(r["antecedents"]))
                     con = ", ".join(list(r["consequents"]))
@@ -84,32 +83,59 @@ def run_apriori_mining(params: Dict[str, Any]) -> RunResult:
                         "confidence": str(round(float(r["confidence"]), 3)),
                         "lift": str(round(float(r["lift"]), 2)),
                     })
+                    network_edges.append({
+                        "source": ant,
+                        "target": con,
+                        "lift": round(float(r["lift"]), 2),
+                        "confidence": round(float(r["confidence"]), 2),
+                    })
         except Exception as e:
             logger.warning(f"Error computing association rules: {e}")
 
-    # Fallback default rules if thresholds too high
-    if not rule_rows:
-        rule_rows = [
-            {"antecedent": "Beverages", "consequent": "Grocery", "support": "0.186", "confidence": "0.679", "lift": "1.78"},
-            {"antecedent": "Personal Care", "consequent": "Grocery", "support": "0.141", "confidence": "0.613", "lift": "1.60"},
-            {"antecedent": "Electronics", "consequent": "Home & Kitchen", "support": "0.092", "confidence": "0.521", "lift": "1.44"},
-        ]
-        if not itemset_rows:
-            itemset_rows = [
-                {"itemset": "{Grocery}", "support": "0.382", "count": int(len(mining_txns) * 0.382)},
-                {"itemset": "{Beverages}", "support": "0.274", "count": int(len(mining_txns) * 0.274)},
-                {"itemset": "{Grocery, Beverages}", "support": "0.186", "count": int(len(mining_txns) * 0.186)},
-            ]
+    warnings = [
+        "Proxy Basket Limitation: Baskets are approximated by grouping purchases by (Customer, Date) since raw retail transaction logs do not contain explicit invoice IDs."
+    ]
 
-    # Observations and warnings
-    obs, warnings = generate_apriori_observations(pd.DataFrame(rule_rows))
-    obs.insert(0, f"Mined {len(itemset_rows)} frequent itemsets and {len(rule_rows)} association rules across {len(mining_txns):,} shopping baskets.")
+    if not rule_rows:
+        warnings.append(
+            f"No association rules met the minimum support ({min_support}) and confidence ({min_confidence}) thresholds. Try lowering the thresholds."
+        )
+        obs = [
+            f"Evaluated {len(mining_txns):,} proxy baskets with min support {min_support} and min confidence {min_confidence}.",
+            "No itemset pairs met both criteria simultaneously. Lower the sliders to discover lower-frequency affinities.",
+        ]
+    else:
+        obs, rule_warnings = generate_apriori_observations(pd.DataFrame(rule_rows))
+        warnings.extend(rule_warnings)
+        obs.insert(0, f"Mined {len(itemset_rows)} frequent itemsets and {len(rule_rows)} association rules across {len(mining_txns):,} shopping baskets.")
 
     elapsed_ms = int((time.time() - start_time) * 1000)
 
-    # Categories for network visualization
+    # Categories and mined edges for network visualization
     cat_res = db_manager.query_df("SELECT category_name as name, COUNT(*) as value FROM fact_sales s JOIN dim_category c ON s.category_key = c.category_key GROUP BY c.category_name;")
-    cat_series = [{"name": r["name"], "value": int(r["value"])} for _, r in cat_res.iterrows()]
+    cat_series = []
+    for _, r in cat_res.iterrows():
+        cat_series.append({"name": r["name"], "value": int(r["value"])})
+
+    # Pack edges into network chart series as well
+    for edge in network_edges:
+        cat_series.append({
+            "name": f"{edge['source']} → {edge['target']}",
+            "value": edge["lift"],
+            "source": edge["source"],
+            "target": edge["target"],
+            "lift": edge["lift"],
+            "confidence": edge["confidence"],
+        })
+
+    rules_lift_series = []
+    for r in rule_rows[:8]:
+        rules_lift_series.append({
+            "name": f"{r['antecedent']} -> {r['consequent']}",
+            "value": float(r["lift"]),
+            "support": float(r["support"]),
+            "confidence": float(r["confidence"]),
+        })
 
     return RunResult(
         lab=9,
@@ -119,11 +145,14 @@ def run_apriori_mining(params: Dict[str, Any]) -> RunResult:
             TableResult(name="Frequent Itemsets", columns=["itemset", "support", "count"], rows=itemset_rows),
             TableResult(name="Association Rules", columns=["antecedent", "consequent", "support", "confidence", "lift"], rows=rule_rows),
         ],
-        charts=[ChartResult(type="network", title="Category Association Network", series=cat_series)],
+        charts=[
+            ChartResult(type="network", title="Category Association Network", series=cat_series),
+            ChartResult(type="bar", title="Top Association Rules by Lift", series=rules_lift_series),
+        ],
         metrics={
             "Itemsets": len(itemset_rows),
             "Rules": len(rule_rows),
-            "Strongest lift": float(rule_rows[0]["lift"]) if rule_rows else 1.0,
+            "Strongest lift": float(rule_rows[0]["lift"]) if rule_rows else 0.0,
             "Baskets evaluated": len(mining_txns),
             "Min support": min_support,
             "Min confidence": min_confidence,

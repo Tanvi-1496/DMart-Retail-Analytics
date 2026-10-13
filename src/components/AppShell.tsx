@@ -16,18 +16,24 @@ const nav = [
   { to: "/insights", label: "Insights", icon: Lightbulb },
 ];
 const labs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const names: Record<string, string> = { "/": "Dashboard", "/exploration": "Data Exploration", "/sales": "Sales Analysis", "/market-basket": "Market Basket", "/segmentation": "Customer Segmentation", "/prediction": "Prediction", "/insights": "Insights" };
+const names: Record<string, string> = { "/": "DMart Retail Analysis", "/exploration": "Data Exploration", "/sales": "Sales Analysis", "/market-basket": "Market Basket", "/segmentation": "Customer Segmentation", "/prediction": "Prediction", "/insights": "Insights" };
 
 export default function AppShell() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
-  const title = location.pathname.startsWith("/labs/") ? `Experiment · Lab ${location.pathname.split("/").pop()}` : names[location.pathname] ?? "DMart Analytics";
+  const labNumber = location.pathname.startsWith("/labs/") ? Number(location.pathname.split("/").pop()) : null;
+  const title = labNumber === 10
+    ? "Lab 10: Integrated Data Mining Pipeline"
+    : labNumber
+    ? `Experiment · Lab ${labNumber}`
+    : names[location.pathname] ?? "DMart Analytics";
+
   return <div className="app-shell">
     <aside className={collapsed ? "sidebar collapsed" : "sidebar"}>
       <div className="brand"><div className="brand-mark"><Store size={21} /></div><div className="brand-copy"><strong>DMart</strong><span>Retail Analytics</span></div></div>
       <nav>
         <div className="nav-list">{nav.map((item) => <NavLink key={item.to} to={item.to} end={item.to === "/"} title={item.label}><item.icon size={18} /><span>{item.label}</span></NavLink>)}</div>
-        <div className="nav-group"><div className="nav-label"><FlaskConical size={14} /><span>Experiments</span></div>{labs.map((lab) => <NavLink key={lab} to={`/labs/${lab}`}><span className="lab-dot">{lab}</span><span>Lab {lab}</span></NavLink>)}</div>
+        <div className="nav-group"><div className="nav-label"><FlaskConical size={14} /><span>Experiments</span></div>{labs.map((lab) => <NavLink key={lab} to={`/labs/${lab}`} title={lab === 10 ? "Lab 10: Integrated Data Mining Pipeline" : `Lab ${lab}`}><span className="lab-dot">{lab}</span><span>{lab === 10 ? "Lab 10: Integrated Pipeline" : `Lab ${lab}`}</span></NavLink>)}</div>
       </nav>
       <button className="collapse-button" onClick={() => setCollapsed(!collapsed)}>{collapsed ? <ChevronRight size={18} /> : <><PanelLeftClose size={17} /><span>Collapse sidebar</span></>}</button>
     </aside>

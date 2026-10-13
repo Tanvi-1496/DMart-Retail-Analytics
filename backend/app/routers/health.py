@@ -2,9 +2,10 @@
 from fastapi import APIRouter
 from ..db import db_manager
 
-router = APIRouter(prefix="/api", tags=["Health"])
+router = APIRouter(tags=["Health"])
 
 @router.get("/health")
+@router.get("/api/health")
 def health_check():
     status = db_manager.get_status()
     summary = db_manager.get_dw_summary()

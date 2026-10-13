@@ -76,9 +76,11 @@ def run_lab_1_warehouse_design(params: Dict[str, Any]) -> RunResult:
 
     # Chart series
     chart_series = []
+    dim_col_key = next((c for c in cols if c.lower() == dim_col.lower()), cols[0])
+    rev_col_key = next((c for c in cols if "rev" in c.lower()), cols[1] if len(cols) > 1 else cols[0])
     for _, r in df.iterrows():
-        val = r["Revenue"] if "Revenue" in cols else r[cols[1]]
-        chart_series.append({"name": str(r[dim_col]), "value": round(float(val) / 10000000, 2) if float(val) > 10000000 else round(float(val), 2)})
+        val = r[rev_col_key] if rev_col_key in cols else r[cols[1]]
+        chart_series.append({"name": str(r[dim_col_key]), "value": round(float(val) / 10000000, 2) if float(val) > 10000000 else round(float(val), 2)})
 
     obs = [
         f"Executed live dimensional analytical query '{query_choice}' against {db_manager.db_type}.",
@@ -132,7 +134,11 @@ def run_lab_12_segmentation(params: Dict[str, Any]) -> RunResult:
         status="success",
         params=params,
         tables=[TableResult(name="Customer Segment Profiles", columns=["segment", "customers", "avg_spend", "avg_transactions", "marketing_strategy"], rows=summary_rows)],
-        charts=[ChartResult(type="scatter", title="Customer Spending vs Income Clusters", series=res["points"])],
+        charts=[
+            ChartResult(type="scatter", title="Customer Spending vs Income Clusters", series=res["points"]),
+            ChartResult(type="line", title="Elbow Method (Inertia vs K)", series=res["elbow"]),
+            ChartResult(type="bar", title="Customer Segment Distribution", series=[{"name": p["name"], "value": int(p["customers"])} for p in res["profiles"]]),
+        ],
         metrics={
             "Clusters (K)": k,
             "Dataset": "Mall Customers (200 rows)",
@@ -146,6 +152,14 @@ def run_lab_12_segmentation(params: Dict[str, Any]) -> RunResult:
 
 def execute_lab(lab_number: int, params: Dict[str, Any]) -> RunResult:
     """Central router executing any of the 12 Data Mining and Data Warehousing practical labs."""
+    # Unwrap nested {"params": {...}} from frontend clients seamlessly
+    if "params" in params and isinstance(params["params"], dict):
+        merged = {**params["params"]}
+        for k, v in params.items():
+            if k != "params":
+                merged[k] = v
+        params = merged
+
     logger.info(f"Executing Lab {lab_number} with parameters: {params}")
 
     if lab_number == 1:

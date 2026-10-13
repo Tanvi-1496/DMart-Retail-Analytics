@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 # Load .env from backend root or project root

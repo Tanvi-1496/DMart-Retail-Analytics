@@ -15,6 +15,9 @@ class MetaResult(BaseModel):
     rows_used: int = 0
     runtime_ms: int = 0
     seed: int = 42
+    sql: Optional[str] = None
+    dataset_metadata: Optional[Dict[str, Any]] = None
+    tree_data: Optional[Dict[str, Any]] = None
 
 class RunResult(BaseModel):
     lab: Optional[int] = None
@@ -25,7 +28,10 @@ class RunResult(BaseModel):
     metrics: Dict[str, Any] = {}
     observations: List[str] = []
     warnings: List[str] = []
+    sql: Optional[str] = None
     meta: MetaResult = Field(default_factory=MetaResult)
+    tree_data: Optional[Dict[str, Any]] = None
+    dataset_metadata: Optional[Dict[str, Any]] = None
 
 class Kpi(BaseModel):
     label: str

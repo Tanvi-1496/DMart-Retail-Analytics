@@ -190,13 +190,13 @@ A complete test suite verifies all API endpoints and every individual lab:
 py -m pytest -v backend/tests
 ```
 
-### Verified Test Matrix (33 Test Cases):
-- `test_health.py`: Root greeting, health status, warehouse connectivity, dataset inventory
-- `test_dashboard.py`: Dashboard KPIs, exploration overview, paginated sales query, dynamic insights
+### Verified Test Matrix (36 Test Cases Passing 100%):
+- `test_health.py`: Root greeting, `/health` and `/api/health` status, warehouse connectivity, dataset inventory
+- `test_dashboard.py`: Dashboard KPIs, multi-parameter filtered dashboard, dynamic filter options (`/api/datasets/options`), exploration summary, paginated query search, dynamic insights, and OLAP star schema overview
 - `test_olap.py`: Schema tables, samples, and all OLAP operations:
   - Roll-up, Drill-down, Slice, Dice, Pivot, Drill-across, CUBE, GROUPING SETS
 - `test_mining.py`: Linear regression, decision tree classification, monthly forecasting, customer segmentation, Apriori mining
-- `test_labs.py`: Unified parameterized execution verifying Labs 1 through 12
+- `test_labs.py`: Unified parameterized execution verifying all Practical Labs 1 through 12, plus boundary testing for invalid lab inputs
 
 ---
 

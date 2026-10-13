@@ -94,12 +94,22 @@ def run_regression_analysis(params: Dict[str, Any]) -> RunResult:
     y_pred_sample = y_pred[sample_indices]
 
     scatter_series = []
+    residual_series = []
     for i, (act, pred) in enumerate(zip(y_test_sample, y_pred_sample)):
+        act_val = round(float(act), 2)
+        pred_val = round(float(pred), 2)
+        res_val = round(act_val - pred_val, 2)
         scatter_series.append({
             "name": f"P{i+1}",
-            "x": round(float(act), 2),
-            "y": round(float(pred), 2),
+            "x": act_val,
+            "y": pred_val,
             "cluster": 0,
+        })
+        residual_series.append({
+            "name": f"P{i+1}",
+            "x": pred_val,
+            "y": res_val,
+            "cluster": 1 if abs(res_val) > 200 else 0,
         })
 
     # 8. Warnings & observations
@@ -122,7 +132,10 @@ def run_regression_analysis(params: Dict[str, Any]) -> RunResult:
         status="success",
         params=params,
         tables=[TableResult(name="Model Coefficients", columns=["feature", "coefficient", "p_value"], rows=coef_rows)],
-        charts=[ChartResult(type="scatter", title="Actual vs Predicted Sales Total", series=scatter_series)],
+        charts=[
+            ChartResult(type="scatter", title="Actual vs Predicted Sales Total", series=scatter_series),
+            ChartResult(type="scatter", title="Residual Plot (Fitted vs Residual Error)", series=residual_series),
+        ],
         metrics={
             "MAE": round(mae, 2),
             "MSE": round(mse, 2),

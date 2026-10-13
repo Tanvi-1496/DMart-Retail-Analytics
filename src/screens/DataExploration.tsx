@@ -99,7 +99,7 @@ export default function DataExploration() {
         <KpiCard label="Duplicate rows" value={data.overview.duplicates} change="Quality verified" icon={<Copy size={17} />} />
       </div>
 
-      <Card className="filter-card" style={{ marginBottom: "20px" }}>
+      <Card className="filter-card mb-5">
         <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", alignItems: "flex-end" }}>
           <div style={{ flex: 1, minWidth: "200px" }}>
             <label className="field">

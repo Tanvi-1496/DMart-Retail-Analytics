@@ -6,6 +6,7 @@ import { Button, Card, ChartCard, DataTable, ErrorToast, KpiCard, PageHeader, Se
 import { useApi } from "../hooks/useApi";
 import type { DashboardData } from "../types";
 
+
 const icons = [IndianRupee, ReceiptText, CreditCard, Package, Users, ShoppingBasket];
 
 const months = [
@@ -16,7 +17,8 @@ const months = [
 export default function Dashboard() {
   const [category, setCategory] = useState("All categories");
   const [customerType, setCustomerType] = useState("All customer types");
-  const [month, setMonth] = useState("All months");
+  const [month, setMonth]
+    = useState("All months");
 
   useEffect(() => {
     document.title = "DMart Retail Analysis";
@@ -62,7 +64,7 @@ export default function Dashboard() {
         }
       />
 
-      <Card className="filter-card" style={{ marginBottom: "20px" }}>
+      <Card className="filter-card mb-5">
         <div className="filter-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
           <Select
             label="Product category"

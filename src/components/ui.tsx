@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type ReactNode, type HTMLAttributes } from "react";
 import { ArrowDownToLine, ChevronLeft, ChevronRight, Database, LoaderCircle, RefreshCw, RotateCcw, SearchX, TrendingUp } from "lucide-react";
 import type { Row } from "../types";
 
@@ -24,8 +24,17 @@ export function Button({
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`card ${className}`}>{children}</div>;
+export function Card({
+  children,
+  className = "",
+  style,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={`card ${className}`} style={style} {...props}>
+      {children}
+    </div>
+  );
 }
 
 export function PageHeader({

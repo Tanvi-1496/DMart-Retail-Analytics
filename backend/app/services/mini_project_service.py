@@ -1,4 +1,4 @@
-﻿# pyrefly: ignore [missing-import]
+# pyrefly: ignore [missing-import]
 import os
 import time
 from datetime import datetime, timezone
@@ -566,12 +566,12 @@ print(df.groupby("Cluster")[features].mean())"""
 
         # Category network edges
         cat_counts = df["Category"].value_counts().to_dict()
-        network_series = [{"name": str(cat), "value": int(cnt)} for cat, cnt in cat_counts.items()]
+        network_series: List[Dict[str, Any]] = [{"name": str(cat), "value": int(cnt)} for cat, cnt in cat_counts.items()]
         for idx, (_, r) in enumerate(rules.head(6).iterrows()):
             ant = list(r["antecedents"])[0].replace("Cat:", "").replace("Pay:", "").replace("Region:", "").replace("Type:", "")
             con = list(r["consequents"])[0].replace("Cat:", "").replace("Pay:", "").replace("Region:", "").replace("Type:", "")
             network_series.append({
-                "name": f"{ant} â†’ {con}",
+                "name": f"{ant} → {con}",
                 "value": round(float(r["lift"]), 2),
                 "source": ant,
                 "target": con,

@@ -2,7 +2,39 @@ import { useParams } from "react-router";
 import LabRunner, { type LabConfig } from "../components/LabRunner";
 
 const configs: Record<number, LabConfig> = {
-  1: { number: 1, title: "Data Warehouse Design", dataset: "DMart", theory: "A dimensional warehouse organizes measurable business events in fact tables and descriptive context in dimensions. Star schemas optimize analytical reads, while snowflake schemas normalize dimensions.", special: "schema", params: [{ type: "select", key: "schema", label: "Schema", options: ["Star", "Snowflake", "Fact Constellation"], initial: "Star" }, { type: "select", key: "query", label: "Analysis query", options: ["Category-wise sales", "Monthly sales", "City-wise sales", "Customer-wise sales"], initial: "Category-wise sales" }] },
+  1: {
+    number: 1,
+    title: "Data Warehouse Design",
+    subtitle: "Dimensional Modeling: Star, Snowflake & Fact Constellation Schemas",
+    description:
+      "Design and compare dimensional architectures for retail analytical processing. Inspect real table relationships, primary/foreign key connections, normalization tradeoffs, and dynamic analytical SQL execution against live warehouse entities.",
+    dataset: "DMart (10,000 live warehouse records)",
+    theory:
+      "1. Core Dimensional Modeling Concepts:\n• Fact Tables: Store numeric, additive, or semi-additive measurements resulting from business events (e.g., FactSales quantity, unit_price, total_amount; FactInventory closing_stock). They possess foreign keys pointing to dimension tables.\n• Dimension Tables: Provide rich descriptive context ('who, what, where, when, and why') that filter, group, and slice facts (e.g., DimDate calendar hierarchy, DimCustomer profiles, DimStore outlets, DimCategory taxonomies).\n• Primary Keys (PK) & Foreign Keys (FK): Dimensions define unique integer surrogate Primary Keys. Fact tables declare matching Foreign Keys, creating strict referential integrity.\n• Cardinality (1 : N): Every dimension row associates with zero, one, or many fact records, whereas each fact record refers back to exactly one dimension row.\n\n2. Star Schema Architecture:\n• Definition: One central fact table surrounded directly by denormalized dimension tables.\n• Joins: Single-hop direct joins between FactSales and each dimension.\n• Advantages: Maximum read speed, simple SQL join paths, minimal join overhead in OLAP tools.\n• Tradeoffs: Attribute denormalization (e.g., store city stored directly in DimStore) causes data redundancy.\n\n3. Snowflake Schema Architecture:\n• Definition: A normalized variation where selected dimension tables are decomposed into 3NF sub-tables.\n• Joins: Multi-hop joins (e.g., FactSales → DimStore → DimCity outrigger table).\n• Advantages: Eliminates attribute redundancy and prevents update anomalies in dimensional hierarchies.\n• Tradeoffs: Additional JOIN operations increase query latency and query complexity.\n\n4. Fact Constellation (Galaxy) Schema:\n• Definition: Multiple fact tables sharing conformed dimensions across distinct business processes.\n• Joins: FactSales and FactInventory share conformed dimensions (DimDate, DimCategory, DimStore), enabling enterprise drill-across operations while DimCustomer remains specific to FactSales.\n• Advantages: Models complex multi-process enterprise architectures without forcing disparate grains into a single monolithic fact table.\n• Tradeoffs: Requires strict dimension conformance governance and disciplined two-phase aggregation to prevent Cartesian row duplication.",
+    special: "schema",
+    params: [
+      {
+        type: "select",
+        key: "schema",
+        label: "Schema",
+        options: ["Star Schema", "Snowflake Schema", "Fact Constellation Schema"],
+        initial: "Star Schema",
+      },
+      {
+        type: "select",
+        key: "query",
+        label: "Analysis query",
+        options: [
+          "City-wise sales",
+          "Category-wise sales",
+          "Monthly sales",
+          "Customer-wise sales",
+          "Inventory vs Sales by Category",
+        ],
+        initial: "City-wise sales",
+      },
+    ],
+  },
   2: { number: 2, title: "OLAP Operations", dataset: "DMart", theory: "OLAP operations navigate a multidimensional cube. Roll-up aggregates, drill-down adds detail, and slice or dice creates focused sub-cubes.", params: [{ type: "select", key: "operation", label: "Operation", options: ["Roll-up", "Drill-down", "Slice", "Dice", "Pivot", "CUBE", "GROUPING SETS", "Drill-across"], initial: "Roll-up" }, { type: "select", key: "dimension", label: "Dimension", options: ["Category", "Month", "City", "Customer Type"], initial: "Category" }, { type: "select", key: "measure", label: "Measure", options: ["Revenue", "Transactions", "Quantity"], initial: "Revenue" }] },
   3: { number: 3, title: "Data Visualization", dataset: "DMart", theory: "Effective visualization maps data types to visual encodings that support accurate comparison, distribution analysis and relationship discovery.", params: [{ type: "select", key: "chart", label: "Chart type", options: ["Bar", "Pie", "Line", "Histogram", "Box", "Scatter", "Heatmap"], initial: "Bar" }, { type: "select", key: "x", label: "X column", options: ["Category", "Customer Type", "Month", "Quantity"], initial: "Category" }, { type: "select", key: "y", label: "Y column", options: ["Total", "UnitPrice", "Transactions"], initial: "Total" }] },
   4: { number: 4, title: "Linear Regression", dataset: "DMart", theory: "Linear regression estimates a continuous target as a weighted sum of input features. Evaluation on held-out data measures generalization.", params: [{ type: "select", key: "type", label: "Regression type", options: ["Simple", "Multiple"], initial: "Multiple" }, { type: "check", key: "features", label: "Features", options: ["UnitPrice", "Quantity", "Customer Type", "Category"], initial: ["UnitPrice", "Quantity"] }, { type: "range", key: "test", label: "Test size", min: 0.1, max: 0.4, step: 0.05, initial: 0.2 }] },

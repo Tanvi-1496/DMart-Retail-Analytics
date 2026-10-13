@@ -190,6 +190,26 @@ class DatabaseManager:
             for sname, city, reg in stores:
                 cur.execute("INSERT OR IGNORE INTO dim_store (store_name, city, region, is_simulated) VALUES (?, ?, ?, 1);", (sname, city, reg))
 
+        # Seed normalized DimCity for Snowflake schema demonstration
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS dim_city (
+            city_key INTEGER PRIMARY KEY AUTOINCREMENT,
+            city_name TEXT NOT NULL UNIQUE,
+            region TEXT NOT NULL
+        );
+        """)
+        cities = [("Mumbai", "West"), ("Pune", "West"), ("Ahmedabad", "West"), ("Bengaluru", "South")]
+        for c, r in cities:
+            cur.execute("INSERT OR IGNORE INTO dim_city (city_name, region) VALUES (?, ?);", (c, r))
+
+        try:
+            cols = [col[1] for col in cur.execute("PRAGMA table_info(dim_store);").fetchall()]
+            if "city_key" not in cols:
+                cur.execute("ALTER TABLE dim_store ADD COLUMN city_key INTEGER REFERENCES dim_city(city_key);")
+            cur.execute("UPDATE dim_store SET city_key = (SELECT city_key FROM dim_city WHERE dim_city.city_name = dim_store.city) WHERE city_key IS NULL;")
+        except Exception as e:
+            logger.warning(f"Error ensuring dim_store.city_key: {e}")
+
         conn.commit()
         conn.close()
 

@@ -4,6 +4,7 @@ import { runLab } from "../api/client";
 import { AnalyticsChart, ConfusionMatrix, Dendrogram, NetworkChart, TreeDiagram } from "./charts";
 import InteractiveDecisionTree from "./InteractiveDecisionTree";
 import DatasetMetadataPanel from "./DatasetMetadataPanel";
+import SchemaDiagram from "./SchemaDiagram";
 import {
   Button, Card, DataTable, DatasetChip, EmptyState, ErrorToast, MetricCards,
   ObservationList, RangeField, RunButton, Select, Tabs, WarningBanner,
@@ -30,11 +31,13 @@ export interface LabConfig {
 function LabVisual({
   special,
   result,
+  params,
   onParamChange,
   onRun,
 }: {
   special?: LabConfig["special"];
   result: RunResult;
+  params?: Record<string, unknown>;
   onParamChange?: (key: string, val: any) => void;
   onRun?: () => void;
 }) {
@@ -149,52 +152,36 @@ function LabVisual({
   }
 
   if (special === "schema") {
+    const activeSchema = String(result.params?.schema || params?.schema || "Star Schema");
+    const activeQuery = String(result.params?.query || params?.query || "City-wise sales");
+
     return (
-      <div>
-        <div className="schema-diagram">
-          <div className="schema-fact">
-            <strong>FactSales</strong>
-            <span>sales_key (PK)</span>
-            <span>date_key (FK)</span>
-            <span>customer_key (FK)</span>
-            <span>category_key (FK)</span>
-            <span>store_key (FK)</span>
-            <span>quantity</span>
-            <span>unit_price</span>
-            <span>total_amount</span>
-          </div>
-          {[
-            { name: "DimCustomer", pk: "customer_key", attrs: "full_name, customer_type" },
-            { name: "DimCategory", pk: "category_key", attrs: "category_name" },
-            { name: "DimDate", pk: "date_key", attrs: "full_date, month, year, quarter" },
-            { name: "DimStore", pk: "store_key", attrs: "store_name, city (simulated)" },
-          ].map((dim, i) => (
-            <div key={dim.name} className={`schema-dim d${i}`}>
-              <strong>{dim.name}</strong>
-              <span>{dim.pk}</span>
-              <span>{dim.attrs}</span>
-            </div>
-          ))}
-        </div>
-        <div className="query-buttons" style={{ marginTop: "16px" }}>
-          {["Category-wise sales", "Monthly sales", "City-wise sales", "Customer-wise sales"].map((query) => (
-            <Button
-              variant="secondary"
-              key={query}
-              onClick={() => {
-                if (onParamChange) onParamChange("query", query);
-              }}
-            >
-              Run: {query}
-            </Button>
-          ))}
-        </div>
-        {result.charts[0] && (
-          <div className="chart-card-standalone" style={{ marginTop: "18px" }}>
-            <h4 className="chart-header-title">{result.charts[0].title || "Dimensional Analytical Query Results"}</h4>
-            <div style={{ height: "320px", width: "100%" }}>
-              <AnalyticsChart type={(result.charts[0].type as any) || "bar"} data={result.charts[0].series} />
-            </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <SchemaDiagram
+          selectedSchema={activeSchema}
+          selectedQuery={activeQuery}
+          onSelectQuery={(query) => {
+            if (onParamChange) onParamChange("query", query);
+          }}
+          executedSql={result.sql}
+        />
+
+        {result.charts && result.charts.length > 0 && (
+          <div className="lab-charts-grid" style={{ marginTop: "10px" }}>
+            {result.charts.map((chart, idx) => (
+              <div
+                key={idx}
+                className="chart-card-standalone"
+                style={{
+                  gridColumn: result.charts.length === 1 || (result.charts.length === 3 && idx === 2) ? "span 2" : "auto",
+                }}
+              >
+                <h4 className="chart-header-title">{chart.title || "Query Result Analytics"}</h4>
+                <div style={{ height: "300px", width: "100%" }}>
+                  <AnalyticsChart type={(chart.type as any) || "bar"} data={chart.series} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -364,7 +351,7 @@ export default function LabRunner({ config }: { config: LabConfig }) {
   const [params, setParams] = useState<Record<string, unknown>>(initial);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
-  const [tab, setTab] = useState("Result");
+  const [tab, setTab] = useState(config.special === "schema" ? "Charts" : "Result");
   const [drawer, setDrawer] = useState(false);
   const [error, setError] = useState("");
 
@@ -390,8 +377,8 @@ export default function LabRunner({ config }: { config: LabConfig }) {
   function update(key: string, value: unknown) {
     const next = { ...params, [key]: value };
     setParams(next);
-    // If updating step or classifier or query, execute with next parameters
-    if (key === "step" || key === "classifier" || key === "query") {
+    // If updating step or classifier or query or schema, execute with next parameters
+    if (key === "step" || key === "classifier" || key === "query" || key === "schema") {
       run(next);
     }
   }
@@ -583,6 +570,7 @@ export default function LabRunner({ config }: { config: LabConfig }) {
                 <LabVisual
                   special={config.special}
                   result={result}
+                  params={params}
                   onParamChange={update}
                   onRun={() => run()}
                 />
@@ -628,7 +616,13 @@ export default function LabRunner({ config }: { config: LabConfig }) {
               <div className="theory-icon">
                 <Database size={24} />
               </div>
-              <p>{config.theory}</p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "12px" }}>
+                {config.theory.split("\n\n").map((para, i) => (
+                  <p key={i} style={{ margin: 0, whiteSpace: "pre-line" }}>
+                    {para}
+                  </p>
+                ))}
+              </div>
               <h3>Curricular learning objective</h3>
               <p>
                 Configure the analytical method, evaluate execution metrics against dimensional facts or benchmark samples,

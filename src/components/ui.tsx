@@ -214,7 +214,7 @@ export function ErrorToast({ message, onRetry }: { message: string; onRetry?: ()
 }
 
 function csvValue(value: string | number) {
-  return `"${String(value).replaceAll('"', '""')}"`;
+  return `"${String(value).replace('"', '""')}"`;
 }
 
 export function DataTable({
@@ -289,7 +289,7 @@ export function DataTable({
             <tr>
               {columns.map((column) => (
                 <th key={column} onClick={() => sort(column)} style={{ cursor: "pointer", userSelect: "none" }}>
-                  {column.replaceAll("_", " ")} {sortKey === column ? (ascending ? "↑" : "↓") : ""}
+                  {column.replace("_", " ")} {sortKey === column ? (ascending ? "↑" : "↓") : ""}
                 </th>
               ))}
             </tr>

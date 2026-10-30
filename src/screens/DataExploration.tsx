@@ -4,7 +4,7 @@ import { getExploration, queryExploration } from "../api/client";
 import { AnalyticsChart } from "../components/charts";
 import { Button, Card, ChartCard, DataTable, ErrorToast, KpiCard, PageHeader, Select, Skeleton } from "../components/ui";
 import { useApi } from "../hooks/useApi";
-import type { ExplorationData, Row } from "../types";
+import { type ExplorationData, type Row, CANONICAL_CATEGORIES } from "../types";
 
 export default function DataExploration() {
   const { data, loading, error, refetch } = useApi<ExplorationData>(getExploration);
@@ -123,7 +123,7 @@ export default function DataExploration() {
             <Select
               label="Category"
               value={filterCategory}
-              options={["All categories", "Grocery", "Home & Kitchen", "Electronics", "Personal Care", "Beverages"]}
+              options={[...CANONICAL_CATEGORIES]}
               onChange={(v) => {
                 setFilterCategory(v);
                 setPage(1);

@@ -4,7 +4,7 @@ import { getKpis } from "../api/client";
 import { AnalyticsChart } from "../components/charts";
 import { Button, Card, ChartCard, DataTable, ErrorToast, KpiCard, PageHeader, Select, Skeleton } from "../components/ui";
 import { useApi } from "../hooks/useApi";
-import type { DashboardData } from "../types";
+import { type DashboardData, CANONICAL_CATEGORIES } from "../types";
 
 
 const icons = [IndianRupee, ReceiptText, CreditCard, Package, Users, ShoppingBasket];
@@ -69,7 +69,7 @@ export default function Dashboard() {
           <Select
             label="Product category"
             value={category}
-            options={["All categories", "Grocery", "Home & Kitchen", "Electronics", "Personal Care", "Beverages"]}
+            options={[...CANONICAL_CATEGORIES]}
             onChange={setCategory}
           />
           <Select

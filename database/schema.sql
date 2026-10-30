@@ -35,12 +35,20 @@ CREATE TABLE IF NOT EXISTS dim_category (
     category_name VARCHAR(100) NOT NULL UNIQUE
 );
 
--- 4. Dimension: Store (Simulated dimension for DWM geographic analytics)
+-- 4. Dimension: City (Normalized outrigger dimension for Snowflake Schema modeling)
+CREATE TABLE IF NOT EXISTS dim_city (
+    city_key SERIAL PRIMARY KEY,
+    city_name VARCHAR(100) NOT NULL UNIQUE,
+    region VARCHAR(50) NOT NULL
+);
+
+-- 5. Dimension: Store (Simulated dimension for DWM geographic analytics)
 CREATE TABLE IF NOT EXISTS dim_store (
     store_key SERIAL PRIMARY KEY,
     store_name VARCHAR(100) NOT NULL UNIQUE,
     city VARCHAR(100) NOT NULL,
     region VARCHAR(50) NOT NULL,
+    city_key INT REFERENCES dim_city(city_key),
     is_simulated BOOLEAN NOT NULL DEFAULT TRUE
 );
 

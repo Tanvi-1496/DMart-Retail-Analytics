@@ -1,5 +1,15 @@
 export type Row = Record<string, string | number>;
 
+export const CANONICAL_CATEGORIES = [
+  "All categories",
+  "Grocery",
+  "Beauty & Personal Care",
+  "Home & Kitchen",
+  "Clothing",
+  "Electronics",
+  "Beverages",
+] as const;
+
 export type ChartType =
   | "bar"
   | "line"

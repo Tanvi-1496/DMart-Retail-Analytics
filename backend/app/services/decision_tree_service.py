@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score, precision_recall_fscore_support, cla
 from sklearn.feature_selection import mutual_info_classif
 from ..db import db_manager
 from ..schemas.common import RunResult, TableResult, ChartResult, MetaResult
+from .mini_project_service import extract_decision_tree_json
 
 logger = logging.getLogger("dmart.decision_tree")
 
@@ -113,6 +114,13 @@ def run_decision_tree_analysis(params: Dict[str, Any]) -> RunResult:
         f"Weighted Macro F1-score: {f1 * 100:.1f}%, indicating balanced discrimination across target partitions.",
     ]
 
+    tree_data = extract_decision_tree_json(
+        clf=clf,
+        feature_names=list(X_df.columns),
+        class_names=[str(c) for c in sorted(list(target_series.unique()))],
+        max_depth=min(max_depth, 4),
+    )
+
     elapsed_ms = int((time.time() - start_time) * 1000)
 
     return RunResult(
@@ -131,5 +139,6 @@ def run_decision_tree_analysis(params: Dict[str, Any]) -> RunResult:
         },
         observations=obs,
         warnings=warnings,
-        meta=MetaResult(rows_used=len(df), runtime_ms=elapsed_ms, seed=42)
+        tree_data=tree_data,
+        meta=MetaResult(rows_used=len(df), runtime_ms=elapsed_ms, seed=42, tree_data=tree_data),
     )

@@ -50,9 +50,13 @@ function LabVisual({
             <AnalyticsChart type={(result.charts[0]?.type as any) || "bar"} data={result.charts[0]?.series || []} />
           </div>
         </div>
-        <div className="chart-card-standalone">
+        <div className="chart-card-standalone" style={{ gridColumn: result.tree_data ? "span 2" : "auto" }}>
           <h4 className="chart-header-title">Decision Tree Logic Hierarchy</h4>
-          <TreeDiagram featureImportance={result.charts[0]?.series} />
+          {result.tree_data ? (
+            <InteractiveDecisionTree treeData={result.tree_data} />
+          ) : (
+            <TreeDiagram featureImportance={result.charts[0]?.series} />
+          )}
         </div>
         {result.charts.slice(1).map((chart, idx) => (
           <div key={idx} className="chart-card-standalone" style={{ gridColumn: "span 2" }}>
@@ -351,7 +355,11 @@ export default function LabRunner({ config }: { config: LabConfig }) {
   const [params, setParams] = useState<Record<string, unknown>>(initial);
   const [result, setResult] = useState<RunResult | null>(null);
   const [running, setRunning] = useState(false);
-  const [tab, setTab] = useState(config.special === "schema" ? "Charts" : "Result");
+  const [tab, setTab] = useState(
+    config.special === "schema" || config.special === "pipeline" || config.special === "tree"
+      ? "Charts"
+      : "Result"
+  );
   const [drawer, setDrawer] = useState(false);
   const [error, setError] = useState("");
 

@@ -6,7 +6,7 @@ import {
   ObservationList, PageHeader, RunButton, Select, SimulatedBadge, Tabs, WarningBanner,
 } from "../components/ui";
 import { RotateCcw } from "lucide-react";
-import type { RunResult } from "../types";
+import { type RunResult, CANONICAL_CATEGORIES } from "../types";
 
 export default function SalesAnalysis() {
   const [operation, setOperation] = useState("Roll-up");
@@ -68,7 +68,7 @@ export default function SalesAnalysis() {
           <Select
             label="Category"
             value={category}
-            options={["All categories", "Grocery", "Home & Kitchen", "Electronics", "Personal Care", "Beverages"]}
+            options={[...CANONICAL_CATEGORIES]}
             onChange={setCategory}
           />
           <Select

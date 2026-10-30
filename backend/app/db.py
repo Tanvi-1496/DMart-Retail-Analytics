@@ -66,6 +66,8 @@ class DatabaseManager:
                 try:
                     cur = conn.cursor()
                     cur.execute("SELECT 1;")
+                    self._ensure_pg_snowflake_schema(cur)
+                    conn.commit()
                     cur.close()
                 finally:
                     conn.close()
@@ -83,6 +85,40 @@ class DatabaseManager:
         self.db_type = "local_warehouse"
         self._init_local_warehouse()
         self._is_connected = True
+
+    def _ensure_pg_snowflake_schema(self, cur):
+        """Ensures normalized dim_city and dim_store.city_key exist in Supabase PostgreSQL."""
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS dim_city (
+                city_key SERIAL PRIMARY KEY,
+                city_name VARCHAR(100) NOT NULL UNIQUE,
+                region VARCHAR(50) NOT NULL
+            );
+        """)
+        cities = [("Mumbai", "West"), ("Pune", "West"), ("Ahmedabad", "West"), ("Bengaluru", "South")]
+        for c, r in cities:
+            cur.execute("""
+                INSERT INTO dim_city (city_name, region)
+                VALUES (%s, %s)
+                ON CONFLICT (city_name) DO NOTHING;
+            """, (c, r))
+
+        cur.execute("""
+            DO $$ 
+            BEGIN 
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name = 'dim_store' AND column_name = 'city_key'
+                ) THEN 
+                    ALTER TABLE dim_store ADD COLUMN city_key INTEGER REFERENCES dim_city(city_key);
+                END IF;
+            END $$;
+        """)
+        cur.execute("""
+            UPDATE dim_store SET city_key = (
+                SELECT city_key FROM dim_city WHERE dim_city.city_name = dim_store.city
+            ) WHERE city_key IS NULL;
+        """)
 
     def _init_local_warehouse(self):
         """Ensures local SQLite database has star schema tables created."""
@@ -334,7 +370,7 @@ class DatabaseManager:
     def get_tables(self) -> List[str]:
 
         """Returns list of warehouse tables."""
-        whitelist = ["dim_date", "dim_customer", "dim_category", "dim_store", "fact_sales", "fact_inventory"]
+        whitelist = ["dim_date", "dim_customer", "dim_category", "dim_store", "dim_city", "fact_sales", "fact_inventory"]
         try:
             if self.db_type == "supabase_postgresql":
                 df = self.query_df("SELECT table_name FROM information_schema.tables WHERE table_schema='public';")
@@ -347,7 +383,7 @@ class DatabaseManager:
 
     def get_table_schema(self, table_name: str) -> List[Dict[str, Any]]:
         """Returns column definitions for the specified table."""
-        whitelist = ["dim_date", "dim_customer", "dim_category", "dim_store", "fact_sales", "fact_inventory"]
+        whitelist = ["dim_date", "dim_customer", "dim_category", "dim_store", "dim_city", "fact_sales", "fact_inventory"]
         if table_name not in whitelist:
             raise ValueError(f"Table '{table_name}' is not an authorized warehouse table.")
         try:
@@ -371,7 +407,7 @@ class DatabaseManager:
 
     def get_table_sample(self, table_name: str, limit: int = 10) -> List[Dict[str, Any]]:
         """Returns sample records for a table."""
-        whitelist = ["dim_date", "dim_customer", "dim_category", "dim_store", "fact_sales", "fact_inventory"]
+        whitelist = ["dim_date", "dim_customer", "dim_category", "dim_store", "dim_city", "fact_sales", "fact_inventory"]
         if table_name not in whitelist:
             raise ValueError(f"Table '{table_name}' is not an authorized warehouse table.")
         safe_limit = min(max(1, limit), 100)

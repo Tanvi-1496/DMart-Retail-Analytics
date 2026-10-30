@@ -51,8 +51,8 @@ def extract_decision_tree_json(clf: DecisionTreeClassifier, feature_names: List[
             "value": val_counts,
             "class": pred_label,
             "class_distribution": {
-                class_names[0] if len(class_names) > 0 else "Normal (0)": val_counts[0] if len(val_counts) > 0 else 0,
-                class_names[1] if len(class_names) > 1 else "High Profit (1)": val_counts[1] if len(val_counts) > 1 else 0,
+                (class_names[i] if i < len(class_names) else f"Class {i}"): val_counts[i]
+                for i in range(len(val_counts))
             },
         }
 

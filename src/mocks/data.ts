@@ -1,6 +1,6 @@
 import type { Insight, Kpi, Row, RunResult } from "../types";
 
-export const categories = ["Grocery", "Home & Kitchen", "Electronics", "Personal Care", "Beverages"];
+export const categories = ["Grocery", "Home & Kitchen", "Electronics", "Beauty & Personal Care", "Clothing", "Beverages"];
 
 export const kpis: Kpi[] = [
   { label: "Total Revenue", value: "₹48.7 Cr", change: "+12.4% vs last year", trend: "up" },

@@ -129,6 +129,7 @@ def _resolve_prediction(kind: str, regression_type: str, classifier: str, catego
                 "relevance_table": mi_table.rows if mi_table else [],
                 "warning": res.warnings[0] if res.warnings else "",
                 "observations": res.observations,
+                "tree_data": res.tree_data,
             }
     else:  # Regression
         res = run_regression_analysis({

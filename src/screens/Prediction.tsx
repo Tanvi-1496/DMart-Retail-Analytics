@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
 import { getPrediction } from "../api/client";
 import { AnalyticsChart, ConfusionMatrix, TreeDiagram } from "../components/charts";
+import InteractiveDecisionTree from "../components/InteractiveDecisionTree";
 import {
   Card, ChartCard, DataTable, ErrorToast, MetricCards,
   ObservationList, PageHeader, Select, Skeleton, Tabs, WarningBanner,
 } from "../components/ui";
 import { useApi } from "../hooks/useApi";
+import { CANONICAL_CATEGORIES } from "../types";
 
 export default function Prediction() {
   const [tab, setTab] = useState("Regression");
@@ -112,7 +114,11 @@ export default function Prediction() {
                   title="Feature Importance & Splits"
                   subtitle="Relative Information Gain across features"
                 >
-                  <TreeDiagram featureImportance={data.feature_importance || []} />
+                  {data.tree_data ? (
+                    <InteractiveDecisionTree treeData={data.tree_data} />
+                  ) : (
+                    <TreeDiagram featureImportance={data.feature_importance || []} />
+                  )}
                 </ChartCard>
               ) : (
                 <ChartCard
@@ -143,7 +149,7 @@ export default function Prediction() {
               <Select
                 label="Product Category Filter"
                 value={category}
-                options={["All categories", "Grocery", "Home & Kitchen", "Electronics", "Personal Care", "Beverages"]}
+                options={[...CANONICAL_CATEGORIES]}
                 onChange={setCategory}
               />
             </div>

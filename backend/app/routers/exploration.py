@@ -166,7 +166,7 @@ def query_exploration(body: ExplorationQueryRequest):
         params.append(body.max_amount)
     if body.search and body.search.strip():
         term = f"%{body.search.strip()}%"
-        where.append("(cust.full_name LIKE ? OR c.category_name LIKE ?)")
+        where.append("(cust.full_name ILIKE ? OR c.category_name ILIKE ?)")
         params.extend([term, term])
 
     where_sql = " AND ".join(where)

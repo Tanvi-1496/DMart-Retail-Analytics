@@ -4,7 +4,7 @@ const API_BASE = (import.meta as any).env?.VITE_API_URL || "http://127.0.0.1:800
 
 async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
 
   try {
     const res = await fetch(url, { ...options, signal: controller.signal });
@@ -25,7 +25,7 @@ async function apiFetch<T>(url: string, options?: RequestInit): Promise<T> {
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err?.name === "AbortError") {
-      throw new Error(`Request timed out while contacting ${url}. The backend analysis took longer than 12 seconds.`);
+      throw new Error(`Request timed out while contacting ${url}. The analytical query took longer than 45 seconds.`);
     }
     if (err instanceof TypeError && err.message.toLowerCase().includes("fetch")) {
       throw new Error(`Cannot connect to FastAPI backend at ${API_BASE}. Ensure the backend is running via 'run_backend.bat' or 'py -m uvicorn backend.app.main:app'.`);

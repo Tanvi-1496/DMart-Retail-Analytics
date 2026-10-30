@@ -312,7 +312,7 @@ export function AnalyticsChart({
 
 export function NetworkChart({
   edges = [],
-  categories = ["Grocery", "Beverages", "Personal Care", "Electronics", "Home & Kitchen"],
+  categories = ["Grocery", "Beverages", "Beauty & Personal Care", "Electronics", "Home & Kitchen", "Clothing"],
 }: {
   edges?: { source: string; target: string; lift: number; confidence: number }[];
   categories?: string[];
@@ -320,15 +320,17 @@ export function NetworkChart({
   const defaultNodes = [
     { x: 50, y: 50, n: "Grocery" },
     { x: 26, y: 26, n: "Beverages" },
-    { x: 74, y: 28, n: "Personal Care" },
+    { x: 74, y: 28, n: "Beauty & Personal Care" },
     { x: 22, y: 74, n: "Electronics" },
     { x: 76, y: 72, n: "Home & Kitchen" },
+    { x: 50, y: 88, n: "Clothing" },
   ];
 
   const nodeMap: Record<string, { x: number; y: number; n: string }> = {};
   defaultNodes.forEach((node) => {
     nodeMap[node.n] = node;
   });
+  nodeMap["Personal Care"] = nodeMap["Beauty & Personal Care"];
 
   const lines = useMemo(() => {
     if (!edges || edges.length === 0) return [];
@@ -395,10 +397,10 @@ export function NetworkChart({
 export function TreeDiagram({
   featureImportance,
 }: {
-  featureImportance?: { name: string; value: number }[];
+  featureImportance?: any[];
 }) {
-  const topFeat = featureImportance?.[0]?.name || "UnitPrice";
-  const secondFeat = featureImportance?.[1]?.name || "Quantity";
+  const topFeat = String(featureImportance?.[0]?.name || "UnitPrice");
+  const secondFeat = String(featureImportance?.[1]?.name || "Quantity");
 
   return (
     <div className="tree-diagram">
